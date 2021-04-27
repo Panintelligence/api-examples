@@ -1,0 +1,49 @@
+{
+    "p.fry": {
+        "forenames": "Philip J.",
+        "surnames": "Fry",
+        "email": "p.fry@theplanetexpress.com",
+        "type": "User",
+        "variables": {
+            "species": "human"
+        },
+        "restrictions": {
+            "Dashboard Repos.Chart Name": "Chart Usage",
+            "Dashboard Repos.Chart Type": "Table"
+        }
+    },
+    "t.leela": {
+        "forenames": "Turanga",
+        "surnames": "Leela",
+        "email": "t.leela@theplanetexpress.com",
+        "type": "Designer",
+        "variables": {
+            "species": "mutant"
+        },
+        "restrictions": {
+            "Dashboard Repos.Chart Name": "Chart Usage"
+        }
+    },
+    "b.rodriguez": {
+        "forenames": "Bender Bending",
+        "surnames": "Rodriguez",
+        "email": "b.rodriguez@theplanetexpress.com",
+        "type": "User",
+        "variables": {
+            "species": "robot",
+            "serial": "2716057"
+        },
+        "restrictions": {
+            "Dashboard Repos.Chart Name": "Chart Usage"
+        }
+    },
+    "h.farnsworth": {
+        "forenames": "Hubert J.",
+        "surnames": "Farnsworth",
+        "email": "h.farnsworth@theplanetexpress.com",
+        "type": "Administrator",
+        "variables": {
+            "species": "human"
+        }
+    }
+}
