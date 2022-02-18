@@ -1,5 +1,5 @@
+const DashboardRequest = require('../common-js/dashboard-request');
 const dashboardInfo = require('./dashboard.json');
-const http = require(dashboardInfo.protocol);
 const userInfo = require('./user-info.json');
 
 const userTypeToTypeID = {
@@ -9,6 +9,8 @@ const userTypeToTypeID = {
     "User": 3,
     "Chart Viewer": 4
 }
+
+const dashboardRequest = new DashboardRequest(dashboardInfo);
 
 const generatePassword = (length) => {
     const charset = `abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!`;
@@ -28,7 +30,8 @@ const extractUserData = (allUserInfo) => {
             forenames: allUserInfo[username].forenames,
             userTypeId: userTypeToTypeID[allUserInfo[username].type],
             usercode: username,
-            clientPassword: generatePassword(16)
+            clientPassword: generatePassword(16),
+            lite: false
         }
     });
 }
@@ -91,66 +94,22 @@ const collectDataConnections = async (token) => {
     }));
 }
 
-const dashboardRequest = {}
-dashboardRequest.generic = (method, endpoint, headers, jsonData) => {
-    const data = jsonData ? JSON.stringify(jsonData) : "";
-    const allHeaders = headers || {};
-    allHeaders['accept'] = 'application/json';
-    if (data) {
-        allHeaders['Content-Type'] = 'application/json';
-        allHeaders['Content-Length'] = data.length;
-    }
-    const options = {
-        hostname: dashboardInfo.host,
-        port: dashboardInfo.port,
-        path: `/pi/api/v2${endpoint}`,
-        method: method,
-        headers: allHeaders
-    }
-
-    return new Promise((resolve, reject) => {
-        const req = http.request(options, res => {
-            let dataBuffer = "";
-            res.on('data', data => {
-                dataBuffer += data || "";
-            });
-            res.on('close', () => {
-                resolve(dataBuffer ? JSON.parse(dataBuffer) : {});
-            });
-        });
-
-        req.on('error', error => {
-            reject(error);
-        });
-
-        req.write(data);
-        req.end();
-    });
-}
-
-dashboardRequest.get = async (token, endpoint) => {
-    return await dashboardRequest.generic('GET',
-        endpoint,
-        { 'Authorization': `Bearer ${token}` });
-}
-
-dashboardRequest.post = async (token, endpoint, jsonData) => {
-    return await dashboardRequest.generic('POST',
-        endpoint,
-        { 'Authorization': `Bearer ${token}` },
-        jsonData);
-}
-
-const createUsersWithInfo = async (allUserInfo, username, password) => {
+const createUsersWithInfo = async (allUserInfo) => {
+    console.log("Starting...");
     // The first thing we need to do is authenticate with the dashboard.
     // For that we need a token
-    const token = (await dashboardRequest.generic('POST', '/tokens',
-        { 'Authorization': `Basic ${username}:${password}` })).token;
+
+    console.log("Getting token...");
+    const token = await dashboardRequest.getToken();
 
     // Lets turn the user data into a format that the Panintelligence Dashboard APIv2 likes
+
+    console.log("Extracting user data...");
     const userData = extractUserData(allUserInfo);
 
     // Then lets create those users
+
+    console.log("Creating users...");
     const dashboardUsers = await Promise.all(userData.map(async (userDetails) => {
         try {
             return await dashboardRequest.post(token, '/users', userDetails);
@@ -159,7 +118,7 @@ const createUsersWithInfo = async (allUserInfo, username, password) => {
         }
     }));
 
-
+    console.log("Processing created users...");
     // Now lets relate the new IDs of the users we've made to the data we've got
     const usernameToUserId = Object.fromEntries(dashboardUsers.map(userData => [userData.usercode, userData.id]));
 
@@ -168,6 +127,7 @@ const createUsersWithInfo = async (allUserInfo, username, password) => {
     const idIndexedUserData = reIndexUserDataByID(allUserInfo, usernameToUserId);
 
     // After, we can grab the variables and pair them with the correct user ID.
+    console.log("Extracting variables...");
     const userVariables = extractVariables(idIndexedUserData);
 
     // Lets make the global version of those variables too.
@@ -182,6 +142,7 @@ const createUsersWithInfo = async (allUserInfo, username, password) => {
         });
 
     // Now we create those global variables in the Dashboard
+    console.log("Creating global variables...");
     await Promise.all(globalVariables.map(async (variableDetails) => {
         try {
             return await dashboardRequest.post(token, '/variables', variableDetails);
@@ -191,6 +152,7 @@ const createUsersWithInfo = async (allUserInfo, username, password) => {
     }));
 
     // Now we create those variables in the Dashboard
+    console.log("Creating user variables...");
     await Promise.all(userVariables.map(async (variableDetails) => {
         try {
             return await dashboardRequest.post(token, `/users/${variableDetails.userId}/variables`, variableDetails);
@@ -201,13 +163,16 @@ const createUsersWithInfo = async (allUserInfo, username, password) => {
 
     // Before we add the user restrictions, we need to find out the column ID because the data mentions the data connection name and the column name
     // For that we need to get all the data connections and all the tables and all the columns until there's a standalon /columns endpoint.
+    console.log("Grabbing data connections...");
     const fullDataConnections = await collectDataConnections(token);
 
     // Now we can process the user restrictions
     // We'll need to assign them with correct user id, like we did with variables
+    console.log("Extracting restrictions...");
     const userRestrictions = extractRestrictions(idIndexedUserData);
     const replacedUserRestrictions = replaceRestrictionColumnIds(userRestrictions, fullDataConnections);
     // Finally, we create those user restrictions in the Dashboard
+    console.log("Creating user restrictions...");
     await Promise.all(replacedUserRestrictions.map(async (restrictionDetails) => {
         try {
             return await dashboardRequest.post(token, `/users/${restrictionDetails.userId}/restrictions`, restrictionDetails);
@@ -215,6 +180,7 @@ const createUsersWithInfo = async (allUserInfo, username, password) => {
             console.error(e);
         }
     }));
+    console.log("Done.");
 }
 
-createUsersWithInfo(userInfo, dashboardInfo.username, dashboardInfo.password);
+createUsersWithInfo(userInfo);

@@ -1,0 +1,7 @@
+{
+    "username": "username",
+    "password": "password",
+    "host": "your.panintelligence.instance.com",
+    "port": null,
+    "protocol": "https"
+}

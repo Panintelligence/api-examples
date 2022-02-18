@@ -1,6 +1,8 @@
 # Panintelligence APIv2 Examples
 In this repository you'll find a few examples for how to use the API in certain scenarios.
 
+* [Creating users with variables and user restrictions](./creating-users)
+
 ## API Documentation
 You can find the latest documentation [here](https://app.swaggerhub.com/apis-docs/panintelligence/dashboard/).
 

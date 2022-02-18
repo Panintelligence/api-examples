@@ -10,3 +10,4 @@ The data for each user is held inside [user-info.json](./user-info.json) which w
 
 See the examples below:
 * Javascript: [create-users.js](./create-users.js)
+  * Run with `node create-users.js`
